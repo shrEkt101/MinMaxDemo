@@ -1,64 +1,7 @@
 import copy
 import csv
+from tictactoe import tictactoe, tictactoeGeneral
 
-
-class tictactoe:
-    def __init__(self) -> None:
-        self.board = [[0 for _ in range(3)] for _ in range(3)]
-        self.winner = None
-        self.turn = 1
-
-    
-    def make_move(self, row, col):
-        if self.board[row][col] == 0:
-            self.board[row][col] = self.turn
-            if self.turn == 1:
-                self.turn = -1
-            else:
-                self.turn = 1
-        else:
-            pass
-    def check_winner(self):
-        for row in range(3):
-            temp = 0
-            for col in range(3):
-                temp += self.board[row][col]
-            if temp == 3 or temp == -3:
-                return temp//3
-            
-        for col in range(3):
-            temp = 0
-            for row in range(3):
-                temp += self.board[row][col]
-                
-            if temp == 3 or temp == -3:
-                return temp//3
-
-        temp = self.board[0][0] + self.board[1][1] + self.board[2][2]
-        if temp == 3 or temp == -3:
-                return temp//3
-        temp = self.board[2][0] + self.board[1][1] + self.board[0][2]
-        if temp == 3 or temp == -3:
-                return temp//3
-
-        for row in range(3):
-            for col in range(3):
-                if self.board[row][col] == 0:
-                    return None
-        return "draw"
-    
-    def possible_moves(self):
-        final = []
-        for row in range(3):
-            for col in range(3):
-                if self.board[row][col] == 0:
-                    final.append((row,col))
-        return final
-        
-    
-    def show_board(self):
-        for row in self.board:
-            print(row)
 
 def minmax(board: tictactoe, player, depth):
     #base case: the game ends
@@ -147,54 +90,66 @@ def minmax(board: tictactoe, player, depth):
 def board_to_tuple(board):
     return (tuple(board[0]),tuple(board[1]),tuple(board[2]))
 
-def minmaxtable(board: tictactoe, player, depth, table):
-    # assert board.turn == player
-    state = board.check_winner()
-    if state == 1:
-        return (2, None)
-    elif state == -1:
-        return (-2, None)
-    elif state == "draw":
-        return (0, None)
+step = 0
+
+class search:
     
-    if player == 1:
-        best_score = -100
-        best_move = None
-        for move in board.possible_moves():
-            new = copy.deepcopy(board)
-            new.make_move(move[0],move[1])
+    def __init__(self) -> None:
+        self.step = 0
 
-            if board_to_tuple(board.board) in table:
-                return table[board_to_tuple(board.board)]
-            
-            score = minmaxtable(new, -player, depth+1, table)[0]
-            if score > best_score:
-                best_score = score
-                best_move = move
+    def minmaxtable(self, board: tictactoe, player, depth, table):
 
-        if board_to_tuple(board.board) not in table:
-            table[board_to_tuple(board.board)] = (best_score,best_move, depth)
+        self.step += 1
+        print(self.step)
+        state = board.check_winner()
+        if state == 1:
+            print("X won!")
+            return (2, None)
+        elif state == -1:
+            print("O won!")
+            return (-2, None)
+        elif state == "draw":
+            print("Draw!")
+            return (0, None)
+        
+        if player == 1:
+            best_score = -100
+            best_move = None
+            for move in board.possible_moves():
+                new = copy.deepcopy(board)
+                new.make_move(move[0],move[1])
 
-        return (best_score, best_move)
-    else:
-        best_score = 100
-        best_move = None
-        for move in board.possible_moves():
-            new = copy.deepcopy(board)
-            new.make_move(move[0],move[1])
+                if board_to_tuple(board.board) in table:
+                    return table[board_to_tuple(board.board)]
+                
+                score = self.minmaxtable(new, -player, depth+1, table)[0]
+                if score > best_score:
+                    best_score = score
+                    best_move = move
 
-            if board_to_tuple(board.board) in table:
-                return table[board_to_tuple(board.board)]
+            if board_to_tuple(board.board) not in table:
+                table[board_to_tuple(board.board)] = (best_score,best_move, depth)
 
-            score = minmaxtable(new, -player, depth+1, table)[0]
-            if score < best_score:
-                best_score = score
-                best_move = move
-            
-        if board_to_tuple(board.board) not in table:
-            table[board_to_tuple(board.board)] = (best_score, best_move, depth)
+            return (best_score, best_move)
+        else:
+            best_score = 100
+            best_move = None
+            for move in board.possible_moves():
+                new = copy.deepcopy(board)
+                new.make_move(move[0],move[1])
 
-        return (best_score, best_move, depth)
+                if board_to_tuple(board.board) in table:
+                    return table[board_to_tuple(board.board)]
+
+                score = self.minmaxtable(new, -player, depth+1, table)[0]
+                if score < best_score:
+                    best_score = score
+                    best_move = move
+                
+            if board_to_tuple(board.board) not in table:
+                table[board_to_tuple(board.board)] = (best_score, best_move, depth)
+
+            return (best_score, best_move, depth)
 
 
 
@@ -209,9 +164,11 @@ def export_table_to_csv(table, filename='minmax_table.csv'):
 
 
 def play():
-    board = tictactoe()
+    board = tictactoeGeneral(4)
     humangoesfirst = False
     table = {}
+    engine = search()
+
 
     if humangoesfirst:
         print("human goes first")
@@ -225,8 +182,11 @@ def play():
                 move = move.strip().split(",")
                 board.make_move(int(move[0]), int(move[1]))
             else:
-                move = minmaxtable(board, turn, 0, table)[1]
+                data = engine.minmaxtable(board, turn, 0, table)
+                move = data[1]
+                # move = minmax(board, 1, 0)
                 board.make_move(move[0], move[1])
+                print("evaluation: {}".format(data[0]))
             
             turn *= -1
         board.show_board()
@@ -242,19 +202,26 @@ def play():
                 move = move.strip().split(",")
                 board.make_move(int(move[0]), int(move[1]))
             else:
-                move = minmaxtable(board, turn, 0, table)[1]
+                data = engine.minmaxtable(board, turn, 0, table)
+                move = data[1]
+                # move = minmax(board, 1, 0)
                 board.make_move(move[0], move[1])
-                print("evaluation: {}".format(minmaxtable(board, turn, 0, table)[0]))
+                print("evaluation: {}".format(data[0]))
             
             turn *= -1
         board.show_board()
 
-play()
+# play()
 
-# board = tictactoe()
-# table = {}
-# minmaxtable(board, 1, 0, table)
-# export_table_to_csv(table, "tictactoeTable.csv")
+engine = search()
+board = tictactoeGeneral(4)
+table = {}
+engine.minmaxtable(board, 1, 0, table)
+export_table_to_csv(table, "tictactoe4x4Table.csv")
+
+
+#this used to cause a bug where the engine didn't detect the threat at 1,0
+# it turned out to be because the engine didn't think it was 1's turn
 
 # board = tictactoe()
 # board.make_move(1,1)
